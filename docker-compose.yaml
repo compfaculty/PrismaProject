@@ -1,0 +1,37 @@
+version: "3"
+
+services:
+  mongodb:
+    image: mongodb/mongodb-community-server:6.0-ubi8
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=user
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+    ports:
+      - '27017:27017'
+  
+  rabbitmq:
+    image: rabbitmq:3.11-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 60s
+      timeout: 60s
+      retries: 3
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  prisma:
+    build:
+      context: .
+      dockerfile: ./PrismaProject/Dockerfile
+    image: compfaculty/prisma
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy  
